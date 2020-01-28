@@ -1,0 +1,5 @@
+add_subdirectory (parallel)
+add_subdirectory (grid)
+add_subdirectory (field)
+add_subdirectory (poisson)
+add_subdirectory (io)

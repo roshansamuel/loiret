@@ -1,0 +1,28 @@
+Loiret - Multigrid Poisson Solver
+
+Loiret is an MPI parallelized Poisson solver written in C++, named after place where the mathematician Poisson was born.
+
+All the source and library files for the Saras solver are contained in the following directories:
+./lib/ - contains all the header and source files used by the library
+./install/ - contains the installation scripts to build and compile the solver
+
+Prerequisites:
+    blitz - All array manipulations are done by the blitz library
+    cmake - Necessary to make the executable from the source files
+    mpich - The compiler used is mpic++
+    yaml - The input parameters are stored in the parameters.yaml file which needs the yaml library to parse.
+
+To compile and run the solver, run the compileSimeon.sh shell script in the install directory
+
+
+REFERENCES:
+Various articles and pages used to make programming decisions during development of the solver are listed here:
+[1]. http://coding.derkeiler.com/Archive/C_CPP/comp.lang.c/2004-02/1382.html
+[2]. https://stackoverflow.com/questions/4816698/avoiding-circular-dependencies-of-header-files
+[3]. http://blitz.sourceforge.net/resources/blitz-0.9.pdf
+[4]. https://stackoverflow.com/questions/8111677/what-is-argument-dependent-lookup-aka-adl-or-koenig-lookup
+[5]. https://www.codesynthesis.com/~boris/blog/2012/04/04/when-provide-empty-destructor/
+
+Articles on multi-grid methods:
+[a]. http://math.mit.edu/classes/18.086/2006/am63.pdf
+[b]. http://www.mgnet.org/mgnet-tuts.html
