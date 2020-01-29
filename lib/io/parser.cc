@@ -30,7 +30,6 @@ void parser::parseYAML() {
 
     /********** Problem parameters **********/
 
-    yamlNode["Program"]["Initial Condition"] >> icType;
     yamlNode["Program"]["Domain Type"] >> domainType;
 
     yamlNode["Program"]["X Length"] >> Lx;

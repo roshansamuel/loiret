@@ -6,8 +6,6 @@
 
 // Forward declarations of relevant classes
 class plainsf;
-class plainvf;
-class vfield;
 
 class sfield {
     private:
@@ -25,11 +23,6 @@ class sfield {
         blitz::Array<real, 3> interTempF;
 
         sfield(const grid &gridData, std::string fieldName);
-
-        void computeDiff(plainsf &H);
-        void computeNLin(const vfield &V, plainsf &H);
-
-        void gradient(plainvf &gradF, const vfield &V);
 
         void syncData();
 
@@ -57,10 +50,7 @@ class sfield {
  *  While the class <B>field</B> merely stores data in the form of a blitz array and offers functions to compute derivatives
  *  over a uniform grid, the <B>sfield</B> class adds another layer of functionality along with the <B>grid</B> (<B>grid.h</B>)
  *  class to apply necessary grid transformation metrics and compute derivatives over a non-uniform grid.
- *  The scalar field is also equipped with a gradient operator, which returns a vector field (vfield).
- *  However, this operation is presently restricted to cell-centered scalar fields, i.e., those which are staggered in all
- *  the directions.
- *  Moreover, the \f$ (\mathbf{u}.\nabla)f \f$ operator is also provided as the function <B>computeNLin</B>
+ *
  ********************************************************************************************************************************************
  */
 

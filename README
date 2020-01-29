@@ -2,9 +2,10 @@ Loiret - Multigrid Poisson Solver
 
 Loiret is an MPI parallelized Poisson solver written in C++, named after place where the mathematician Poisson was born.
 
-All the source files for the multigrid solver are contained in the following directories:
+All the files relevant to the multigrid solver are contained in the following directories:
 ./lib/ - contains all the header and source files used by the library
-./install/ - contains the installation scripts to build and compile the solver
+./compile/ - contains the installation scripts to build and compile the solver
+./input/ - contains the parameters.yaml file which has to be read by the solver at runtime
 
 Prerequisites:
     blitz - All array manipulations are done by the blitz library

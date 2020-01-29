@@ -26,7 +26,6 @@ class parser {
         int vcDepth, vcCount;
         int preSmooth, postSmooth;
 
-        int icType;
         int xGrid, yGrid, zGrid;
 
         bool xPer, yPer, zPer;
