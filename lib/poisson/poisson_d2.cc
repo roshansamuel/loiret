@@ -23,7 +23,7 @@ multigrid_d2::multigrid_d2(const grid &mesh, const parser &solParam): poisson(me
     // GET THE localSizeIndex AS IT WILL BE USED TO SET THE FULL AND CORE LIMITS OF THE STAGGERED POINTS
     setLocalSizeIndex();
 
-    // SET THE FULL AND CORE LIMTS SET ABOVE USING THE localSizeIndex VARIBLE SET ABOVE
+    // SET THE FULL AND CORE LIMTS USING THE localSizeIndex VARIBLE SET ABOVE
     setStagBounds();
 
     // USING THE FULL AND CORE LIMTS SET ABOVE, CREATE ALL Range OBJECTS
@@ -35,7 +35,7 @@ multigrid_d2::multigrid_d2(const grid &mesh, const parser &solParam): poisson(me
     // COPY THE STAGGERED GRID DERIVATIVES TO LOCAL ARRAYS
     copyStaggrDerivs();
 
-    // RESIZE AND INITIALIZE NECESSARY DATA-STRUCTURES
+    // RESIZE AND INITIALIZE NECESSARY ARRAYS
     initializeArrays();
 
     // CREATE THE MPI SUB-ARRAYS NECESSARY TO TRANSFER DATA ACROSS SUB-DOMAINS AT ALL MESH LEVELS
@@ -66,7 +66,9 @@ void multigrid_d2::vCycle() {
     int iY = 0;
     vLevel = 0;
 
-    // PRE-SMOOTHING
+    // PRE-SMOOTHING - SMOOTH FUNCTION OPERATES WITH residualData AS RHS AND pressureData AS LHS.
+    // HENCE FOR PRE-SMOOTHING AND POST-SMOOTHING, inputRHSData HAS TO BE WRITTEN INTO residualData TEMPORARILY.
+    // ALL SUBSEQUENT SMOOTHING CALLS AUTOMATICALLY OPERATE WITH THE residualData ARRAY.
     swap(inputRHSData, residualData);
     smooth(inputParams.preSmooth);
     swap(residualData, inputRHSData);
@@ -90,6 +92,8 @@ void multigrid_d2::vCycle() {
 
     // RESTRICTION OPERATIONS
     for (int i=0; i<inputParams.vcDepth; i++) {
+        // Direct-injection restriction simply increases the stride for accessing the memory by a factor of 2
+        // This is done by simply increasing the vLevel, which correspondingly reads the correct stride from strideValues array
         vLevel += 1;
     }
 
@@ -143,13 +147,14 @@ void multigrid_d2::solve() {
     real localMax, globalMax;
 
     while (true) {
-        // GAUSS-SEIDEL ITERATIVE SOLVER - FASTEST IN BENCHMARKS
+        // JACOBI ITERATIVE SOLVER
+#pragma omp parallel for num_threads(inputParams.nThreads) default(none) shared(iY)
         for (int iX = xStr; iX <= xEnd; iX += strideValues(vLevel)) {
             for (int iZ = zStr; iZ <= zEnd; iZ += strideValues(vLevel)) {
-                iteratorTemp(iX, iY, iZ) = (hz2(vLevel) * xix2(iX) * (pressureData(iX + strideValues(vLevel), iY, iZ) + iteratorTemp(iX - strideValues(vLevel), iY, iZ))*2.0 +
-                                            hz2(vLevel) * xixx(iX) * (pressureData(iX + strideValues(vLevel), iY, iZ) - iteratorTemp(iX - strideValues(vLevel), iY, iZ))*hx(vLevel) +
-                                            hx2(vLevel) * ztz2(iZ) * (pressureData(iX, iY, iZ + strideValues(vLevel)) + iteratorTemp(iX, iY, iZ - strideValues(vLevel)))*2.0 +
-                                            hx2(vLevel) * ztzz(iZ) * (pressureData(iX, iY, iZ + strideValues(vLevel)) - iteratorTemp(iX, iY, iZ - strideValues(vLevel)))*hz(vLevel) -
+                iteratorTemp(iX, iY, iZ) = (hz2(vLevel) * xix2(iX) * (pressureData(iX + strideValues(vLevel), iY, iZ) + pressureData(iX - strideValues(vLevel), iY, iZ))*2.0 +
+                                            hz2(vLevel) * xixx(iX) * (pressureData(iX + strideValues(vLevel), iY, iZ) - pressureData(iX - strideValues(vLevel), iY, iZ))*hx(vLevel) +
+                                            hx2(vLevel) * ztz2(iZ) * (pressureData(iX, iY, iZ + strideValues(vLevel)) + pressureData(iX, iY, iZ - strideValues(vLevel)))*2.0 +
+                                            hx2(vLevel) * ztzz(iZ) * (pressureData(iX, iY, iZ + strideValues(vLevel)) - pressureData(iX, iY, iZ - strideValues(vLevel)))*hz(vLevel) -
                                       2.0 * hzhx(vLevel) * residualData(iX, iY, iZ))/
                                     (4.0 * (hz2(vLevel)*xix2(iX) + hx2(vLevel)*ztz2(iZ)));
             }
@@ -192,9 +197,8 @@ void multigrid_d2::solve() {
         MPI_Barrier(MPI_COMM_WORLD);
         iterCount += 1;
         if (iterCount > maxCount) {
-            if (mesh.rankData.rank == 0) {
-                std::cout << "ERROR: Jacobi iterations for solution at coarsest level not converging. Aborting" << std::endl;
-            }
+            if (mesh.rankData.rank == 0) std::cout << "ERROR: Jacobi iterations for solution at coarsest level not converging. Aborting" << std::endl;
+
             MPI_Finalize();
             exit(0);
         }

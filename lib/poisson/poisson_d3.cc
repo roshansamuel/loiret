@@ -23,7 +23,7 @@ multigrid_d3::multigrid_d3(const grid &mesh, const parser &solParam): poisson(me
     // GET THE localSizeIndex AS IT WILL BE USED TO SET THE FULL AND CORE LIMITS OF THE STAGGERED POINTS
     setLocalSizeIndex();
 
-    // SET THE FULL AND CORE LIMTS SET ABOVE USING THE localSizeIndex VARIABLE SET ABOVE
+    // SET THE FULL AND CORE LIMTS USING THE localSizeIndex VARIABLE SET ABOVE
     setStagBounds();
 
     // USING THE FULL AND CORE LIMTS SET ABOVE, CREATE ALL Range OBJECTS
@@ -35,7 +35,7 @@ multigrid_d3::multigrid_d3(const grid &mesh, const parser &solParam): poisson(me
     // COPY THE STAGGERED GRID DERIVATIVES TO LOCAL ARRAYS
     copyStaggrDerivs();
 
-    // RESIZE AND INITIALIZE NECESSARY DATA-STRUCTURES
+    // RESIZE AND INITIALIZE NECESSARY ARRAYS
     initializeArrays();
 
     // CREATE THE MPI SUB-ARRAYS NECESSARY TO TRANSFER DATA ACROSS SUB-DOMAINS AT ALL MESH LEVELS
@@ -65,7 +65,9 @@ void multigrid_d3::mgSolve(plainsf &inFn, const plainsf &rhs) {
 void multigrid_d3::vCycle() {
     vLevel = 0;
 
-    // PRE-SMOOTHING
+    // PRE-SMOOTHING - SMOOTH FUNCTION OPERATES WITH residualData AS RHS AND pressureData AS LHS.
+    // HENCE FOR PRE-SMOOTHING AND POST-SMOOTHING, inputRHSData HAS TO BE WRITTEN INTO residualData TEMPORARILY.
+    // ALL SUBSEQUENT SMOOTHING CALLS AUTOMATICALLY OPERATE WITH THE residualData ARRAY.
     swap(inputRHSData, residualData);
     smooth(inputParams.preSmooth);
     swap(residualData, inputRHSData);
@@ -93,6 +95,8 @@ void multigrid_d3::vCycle() {
 
     // RESTRICTION OPERATIONS
     for (int i=0; i<inputParams.vcDepth; i++) {
+        // Direct-injection restriction simply increases the stride for accessing the memory by a factor of 2
+        // This is done by simply increasing the vLevel, which correspondingly reads the correct stride from strideValues array
         vLevel += 1;
     }
 
@@ -187,7 +191,8 @@ void multigrid_d3::solve() {
         gettimeofday(&begin, NULL);
 #endif
 
-        // GAUSS-SEIDEL ITERATIVE SOLVER - FASTEST IN BENCHMARKS
+        // JACOBI ITERATIVE SOLVER
+#pragma omp parallel for num_threads(inputParams.nThreads) default(none)
         for (int iX = xStr; iX <= xEnd; iX += strideValues(vLevel)) {
             for (int iY = yStr; iY <= yEnd; iY += strideValues(vLevel)) {
                 for (int iZ = zStr; iZ <= zEnd; iZ += strideValues(vLevel)) {
@@ -258,9 +263,8 @@ void multigrid_d3::solve() {
         MPI_Barrier(MPI_COMM_WORLD);
         iterCount += 1;
         if (iterCount > maxCount) {
-            if (mesh.rankData.rank == 0) {
-                std::cout << "ERROR: Jacobi iterations for solution at coarsest level not converging. Aborting" << std::endl;
-            }
+            if (mesh.rankData.rank == 0) std::cout << "ERROR: Jacobi iterations for solution at coarsest level not converging. Aborting" << std::endl;
+
             MPI_Finalize();
             exit(0);
         }

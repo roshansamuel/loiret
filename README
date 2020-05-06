@@ -13,11 +13,11 @@ Prerequisites:
     mpich - The compiler used is mpic++
     yaml - The input parameters are stored in the parameters.yaml file which needs the yaml library to parse.
 
-To compile and run the solver, run the compileLoiret.sh shell script in the install directory
+To compile and run the solver, run the compileLoiret.sh shell script in the compile directory
 
 
 REFERENCES:
-Various articles and pages used to make programming decisions during development of the solver are listed here:
+Various articles and pages used during development of the solver are listed here:
 [1]. http://coding.derkeiler.com/Archive/C_CPP/comp.lang.c/2004-02/1382.html
 [2]. https://stackoverflow.com/questions/4816698/avoiding-circular-dependencies-of-header-files
 [3]. http://blitz.sourceforge.net/resources/blitz-0.9.pdf
